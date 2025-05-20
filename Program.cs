@@ -9,6 +9,8 @@ using ZuvoPetApiAWS.Services;
 using Microsoft.Extensions.Azure;
 using Azure.Security.KeyVault.Secrets;
 using Amazon.S3;
+using Newtonsoft.Json;
+using ZuvoPetNuget.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,28 +22,42 @@ builder.Services.AddAzureClients(factory =>
 
 SecretClient secretClient = builder.Services.BuildServiceProvider().GetRequiredService<SecretClient>();
 
+string miSecreto = await HelperSecretsManager.GetSecretAsync();
+KeysModel model = JsonConvert.DeserializeObject<KeysModel>(miSecreto);
+
 //KeyVaultSecret secretConnectionString = await secretClient.GetSecretAsync("SqlZuvoPet");
-string secretConnectionString = builder.Configuration.GetConnectionString("MySql");
+//string secretConnectionString = builder.Configuration.GetConnectionString("MySql");
+string secretConnectionString = model.MySql;
+
 KeyVaultSecret secretStorageAccount = await secretClient.GetSecretAsync("StorageAccount");
 
-KeyVaultSecret secretAudience = await secretClient.GetSecretAsync("Audience");
-KeyVaultSecret secretIssuer = await secretClient.GetSecretAsync("Issuer");
-KeyVaultSecret secretIterate = await secretClient.GetSecretAsync("Iterate");
-KeyVaultSecret secretKey = await secretClient.GetSecretAsync("Key");
-KeyVaultSecret secretSalt = await secretClient.GetSecretAsync("Salt");
-KeyVaultSecret secretSecretKey = await secretClient.GetSecretAsync("SecretKey");
+//KeyVaultSecret secretAudience = await secretClient.GetSecretAsync("Audience");
+string secretAudience = model.Audience;
+//KeyVaultSecret secretIssuer = await secretClient.GetSecretAsync("Issuer");
+string secretIssuer = model.Issuer;
+//KeyVaultSecret secretSecretKey = await secretClient.GetSecretAsync("SecretKey");
+string secretSecretKey = model.SecretKey;
+
+//KeyVaultSecret secretIterate = await secretClient.GetSecretAsync("Iterate");
+string secretIterate = model.Iterate;
+//KeyVaultSecret secretKey = await secretClient.GetSecretAsync("Key");
+string secretKey = model.Key;
+//KeyVaultSecret secretSalt = await secretClient.GetSecretAsync("Salt");
+string secretSalt = model.Salt;
+
+
 
 HelperCriptography.Initialize(
-    secretSalt.Value,
-    secretIterate.Value,
-    secretKey.Value
+    secretSalt,
+    secretIterate,
+    secretKey
 );
 builder.Services.AddHttpContextAccessor();
 
 HelperActionServicesOAuth helper = new HelperActionServicesOAuth(
-    secretIssuer.Value,
-    secretAudience.Value,
-    secretSecretKey.Value
+    secretIssuer,
+    secretAudience,
+    secretSecretKey
 );
 builder.Services.AddSingleton<HelperActionServicesOAuth>(helper);
 builder.Services.AddSingleton<ServiceStorageBlobs>();
