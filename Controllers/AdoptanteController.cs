@@ -19,11 +19,13 @@ namespace ZuvoPetApiAWS.Controllers
         private IRepositoryZuvoPet repo;
         private HelperUsuarioToken helper;
         private ServiceStorageBlobs storageService;
-        public AdoptanteController(IRepositoryZuvoPet repo, HelperUsuarioToken helper, ServiceStorageBlobs storageService)
+        public ServiceStorageS3 service;
+        public AdoptanteController(IRepositoryZuvoPet repo, HelperUsuarioToken helper, ServiceStorageBlobs storageService, ServiceStorageS3 service)
         {
             this.repo = repo;
             this.helper = helper;
             this.storageService = storageService;
+            this.service = service;
         }
 
         [HttpPost("SubirImagen")]
@@ -50,7 +52,8 @@ namespace ZuvoPetApiAWS.Controllers
                 // Procesar y subir archivo
                 using (Stream stream = archivo.OpenReadStream())
                 {
-                    await this.storageService.UploadBlobAsync(containerName, blobName, stream);
+                    //await this.storageService.UploadBlobAsync(containerName, blobName, stream);
+                    await this.service.UploadFileAsync(archivo.FileName, stream);
                 }
 
                 // Obtener la URL del nuevo blob

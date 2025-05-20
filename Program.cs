@@ -8,6 +8,7 @@ using Azure.Storage.Blobs;
 using ZuvoPetApiAWS.Services;
 using Microsoft.Extensions.Azure;
 using Azure.Security.KeyVault.Secrets;
+using Amazon.S3;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +20,8 @@ builder.Services.AddAzureClients(factory =>
 
 SecretClient secretClient = builder.Services.BuildServiceProvider().GetRequiredService<SecretClient>();
 
-KeyVaultSecret secretConnectionString = await secretClient.GetSecretAsync("SqlZuvoPet");
+//KeyVaultSecret secretConnectionString = await secretClient.GetSecretAsync("SqlZuvoPet");
+string secretConnectionString = builder.Configuration.GetConnectionString("MySql");
 KeyVaultSecret secretStorageAccount = await secretClient.GetSecretAsync("StorageAccount");
 
 KeyVaultSecret secretAudience = await secretClient.GetSecretAsync("Audience");
@@ -48,15 +50,18 @@ builder.Services.AddAuthentication(helper.GetAuthenticateSchema())
     .AddJwtBearer(helper.GetJwtBearerOptions());
 // Add services to the container.
 
+builder.Services.AddAWSService<IAmazonS3>();
+builder.Services.AddTransient<ServiceStorageS3>();
+
 string azureKeys = secretStorageAccount.Value;
 BlobServiceClient blobServiceClient = new BlobServiceClient(azureKeys);
 builder.Services.AddTransient<BlobServiceClient>(x => blobServiceClient);
 
 string connectionString =
-    secretConnectionString.Value;
+    secretConnectionString;
 builder.Services.AddTransient<IRepositoryZuvoPet, RepositoryZuvoPet>();
 builder.Services.AddDbContext<ZuvoPetContext>
-    (options => options.UseSqlServer(connectionString));
+    (options => options.UseMySQL(connectionString));
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

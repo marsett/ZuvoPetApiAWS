@@ -27,6 +27,26 @@ namespace ZuvoPetApiAWS.Helpers
         }
         // Esta clase la hemos creado también para quitar código
         // del program
+        //public Action<JwtBearerOptions> GetJwtBearerOptions()
+        //{
+        //    Action<JwtBearerOptions> options =
+        //        new Action<JwtBearerOptions>(options =>
+        //        {
+        //            // Indicamos que debemos validar para el token
+        //            options.TokenValidationParameters =
+        //            new TokenValidationParameters
+        //            {
+        //                ValidateIssuer = true,
+        //                ValidateAudience = true,
+        //                ValidateLifetime = true,
+        //                ValidateIssuerSigningKey = true,
+        //                ValidIssuer = this.Issuer,
+        //                ValidAudience = this.Audience,
+        //                IssuerSigningKey = this.GetKeyToken()
+        //            };
+        //        });
+        //    return options;
+        //}
         public Action<JwtBearerOptions> GetJwtBearerOptions()
         {
             Action<JwtBearerOptions> options =
@@ -42,7 +62,54 @@ namespace ZuvoPetApiAWS.Helpers
                         ValidateIssuerSigningKey = true,
                         ValidIssuer = this.Issuer,
                         ValidAudience = this.Audience,
-                        IssuerSigningKey = this.GetKeyToken()
+                        IssuerSigningKey = this.GetKeyToken(),
+                        ClockSkew = TimeSpan.Zero // Elimina el tiempo de gracia predeterminado
+                    };
+
+                    // Configuración detallada de eventos para diagnóstico
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnAuthenticationFailed = context =>
+                        {
+                            // Registra el error detallado
+                            Console.WriteLine($"Error de autenticación: {context.Exception.Message}");
+
+                            // Agrega el error específico a la respuesta
+                            context.Response.Headers.Add("WWW-Authenticate",
+                                $"Bearer error=\"invalid_token\", error_description=\"{context.Exception.Message}\"");
+
+                            // Si quieres ver la pila de llamadas completa
+                            Console.WriteLine($"Stack trace: {context.Exception.StackTrace}");
+
+                            return Task.CompletedTask;
+                        },
+
+                        OnMessageReceived = context =>
+                        {
+                            Console.WriteLine("Token recibido: " +
+                                (context.Token != null ?
+                                    context.Token.Substring(0, Math.Min(context.Token.Length, 30)) + "..."
+                                    : "null"));
+                            return Task.CompletedTask;
+                        },
+
+                        OnTokenValidated = context =>
+                        {
+                            Console.WriteLine("Token validado exitosamente");
+                            return Task.CompletedTask;
+                        },
+
+                        OnChallenge = context =>
+                        {
+                            // Este evento permite personalizar la respuesta cuando se requiere autenticación
+                            if (context.AuthenticateFailure != null)
+                            {
+                                // Añade detalles específicos al error de autenticación
+                                context.Response.Headers["WWW-Authenticate"] =
+                                    $"Bearer error=\"invalid_token\", error_description=\"{context.AuthenticateFailure.Message}\"";
+                            }
+                            return Task.CompletedTask;
+                        }
                     };
                 });
             return options;

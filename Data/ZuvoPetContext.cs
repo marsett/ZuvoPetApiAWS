@@ -33,5 +33,10 @@ namespace ZuvoPetApiAWS.Data
         // 📌 Mensajes y Notificaciones
         public DbSet<Mensaje> Mensajes { get; set; }
         public DbSet<Notificacion> Notificaciones { get; set; }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Ignore<List<string>>();
+            base.OnModelCreating(modelBuilder);
+        }
     }
 }
